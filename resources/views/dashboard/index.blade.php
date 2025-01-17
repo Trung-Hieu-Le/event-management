@@ -15,7 +15,49 @@
             </div>
         </div>
     </div>
-    <!-- Modal Thêm Sự Kiện -->
+    <div class="modal fade" id="editEventModal" tabindex="-1" role="dialog" aria-labelledby="eventEditLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Event</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="editEventForm">
+                        @csrf
+                        <input type="hidden" id="eventId">
+                        <div class="form-group">
+                            <label for="title_edit">Title</label>
+                            <input type="text" id="title_edit" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="start_time_edit">Start Time</label>
+                            <input type="datetime-local" id="start_time_edit" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time_edit">End Time</label>
+                            <input type="datetime-local" id="end_time_edit" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="type_edit">Type</label>
+                            <select id="type_edit" class="form-control">
+                                <option value="personal">Personal</option>
+                                <option value="community">Community</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="location_edit">Location</label>
+                            <input type="text" id="location_edit" class="form-control">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-update-event">Save changes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div> 
+
     <div class="modal fade" id="eventAdd" tabindex="-1" role="dialog" aria-labelledby="eventAddLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -29,25 +71,25 @@
                         <input type="hidden" name="author_id" value="{{ auth()->user()->id }}">
                         <div class="form-group mb-3">
                             <label for="newEventTitle">Title</label>
-                            <input type="text" name="title" id="newEventTitle" class="form-control" placeholder="Event Title" required>
+                            <input type="text" name="title" id="title_add" class="form-control" placeholder="Event Title" required>
                         </div>
                         <div class="form-group mb-3">
                             <label for="newStartTime">Start Time</label>
-                            <input type="datetime-local" name="start_time" id="newStartTime" class="form-control" required>
+                            <input type="datetime-local" name="start_time" id="start_time_add" class="form-control" required>
                         </div>
                         <div class="form-group mb-3">
                             <label for="newEndTime">End Time</label>
-                            <input type="datetime-local" name="end_time" id="newEndTime" class="form-control">
+                            <input type="datetime-local" name="end_time" id="end_time_add" class="form-control">
                         </div>
                         <div class="form-group mb-3">
                             <label for="newType">Type</label>
-                            <select name="type" id="newType" class="form-control">
+                            <select name="type" id="type_add" class="form-control">
                                 <option value="personal">Personal</option>
                                 <option value="community">Community</option>
                             </select>
                         <div class="form-group mb-3">
                             <label for="newLocation">Location</label>
-                            <input type="text" name="location" id="newLocation" class="form-control" placeholder="Location">
+                            <input type="text" name="location" id="location_add" class="form-control" placeholder="Location">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -58,48 +100,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal sửa sự kiện -->
-    <div class="modal" id="editEventModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Event</h5>
-                </div>
-                <div class="modal-body">
-                    <form id="editEventForm">
-                        <input type="hidden" id="eventId">
-                        <div class="form-group">
-                            <label for="title">Title</label>
-                            <input type="text" id="title_edit" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="start_time">Start Time</label>
-                            <input type="datetime-local" id="start_time" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="end_time">End Time</label>
-                            <input type="datetime-local" id="end_time" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="type">Type</label>
-                            <select id="type_edit" class="form-control">
-                                <option value="personal">Personal</option>
-                                <option value="community">Community</option>
-                        </div>
-                        <div class="form-group">
-                            <label for="location">Location</label>
-                            <input type="text" id="location" class="form-control">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary btn-update-event">Save changes</button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>    
 </div>
 @endsection
 
@@ -127,13 +127,11 @@
 
         eventClick: function(info) {
             var event = info.event;
-            console.log(event);
-            
             var eventIdField = document.getElementById('eventId');
             var titleEditField = document.getElementById('title_edit');
-            var startTimeField = document.getElementById('start_time');
-            var endTimeField = document.getElementById('end_time');
-            var locationField = document.getElementById('location');
+            var startTimeField = document.getElementById('start_time_edit');
+            var endTimeField = document.getElementById('end_time_edit');
+            var locationField = document.getElementById('location_edit');
             var typeField = document.getElementById('type_edit');
         
             if (eventIdField) eventIdField.value = event.id || '';
@@ -196,11 +194,12 @@
     document.querySelector('.btn-update-event').addEventListener('click', function () {
         const eventId = document.getElementById('eventId').value;
         const title = document.getElementById('title_edit').value;
-        const startTime = document.getElementById('start_time').value;
-        const endTime = document.getElementById('end_time').value;
-        const location = document.getElementById('location').value;
+        const startTime = document.getElementById('start_time_edit').value;
+        const endTime = document.getElementById('end_time_edit').value;
+        const location = document.getElementById('location_edit').value;
         const type = document.getElementById('type_edit').value;
-
+        // console.log(eventId, title, startTime, endTime, location, type);
+        
         if (!title || !startTime) {
             alert('Title and Start Time are required!');
             return;
@@ -221,34 +220,33 @@
                 type: type,
             }),
         })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response:', response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Received non-JSON response");
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-
-                    // Cập nhật sự kiện trong lịch
-                    const event = calendar.getEventById(eventId);
-                    if (event) {
-                        event.setProp('title', title);
-                        event.setStart(startTime);
-                        event.setEnd(endTime);
-                        event.setExtendedProp('location', location);
-                    }
-
-                    // Đóng modal
                     $('#editEventModal').modal('hide');
                 } else {
                     alert(`Error: ${data.message}`);
                 }
             })
             .catch(error => {
+                console.error(error);
                 alert(`Error updating event: ${error.message}`);
             });
     });
 });
 
 
-// Hàm chuyển đổi định dạng datetime sang MySQL
 function convertToLocalTime(date) {
     const local = new Date(date);
     const offset = local.getTimezoneOffset();

@@ -7,24 +7,45 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
     public function index()
     {
-        $events = Event::all();
-        return view('events.index', compact('events'));
+        try {
+            //TODO: check type=community
+            $events = Event::where('type', 'personal')->get();
+            return view('events.index', compact('events'));
+        } catch (\Exception $e) {
+            \Log::error('Error fetching events (controller): ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 
-    public function show(Event $event)
+    public function show($id)
     {
-        return view('events.show', compact('event'));
+        try {
+            $event = Event::findOrFail($id);
+            if (!$event) {
+                return response()->json(['error' => 'Event not found'], 404);
+            }
+            return response()->json($event);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching event (controller): ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function addToFavorites(Request $request, Event $event)
     {
-        $request->user()->favorites()->create(['event_id' => $event->id]);
-        return redirect()->back()->with('success', 'Event added to favorites!');
+        try {
+            $request->user()->favorites()->create(['event_id' => $event->id]);
+            return redirect()->back()->with('success', 'Event added to favorites!');
+        } catch (\Exception $e) {
+            \Log::error('Error adding event to favorites (controller): ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
     }
 
     public function updateDayOnly(Request $request, $id)
@@ -47,23 +68,24 @@ class EventController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Event updated successfully']);
         } catch (\Exception $e) {
-            \Log::error('Error updating event: ' . $e->getMessage());
+            \Log::error('Error updating event (controller): ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
     public function update(Request $request)
     {
-        $request->validate([
-            'id' => 'required|exists:events,id',
-            'title' => 'required|string|max:255',
-            'start_time' => 'required|date',
-            'end_time' => 'nullable|date|after_or_equal:start_time',
-            'location' => 'nullable|string|max:255',
-            'type' => 'required|string|in:public,private',
-        ]);
-
+        // dd($request->all());
         try {
+            $request->validate([
+                'id' => 'required|exists:events,id',
+                'title' => 'required|string|max:255',
+                'start_time' => 'required|date',
+                'end_time' => 'nullable|date|after_or_equal:start_time',
+                'location' => 'nullable|string|max:255',
+                'type' => 'required|string|in:community,personal',
+            ]);
+
             // Tìm sự kiện và cập nhật thông tin
             $event = Event::findOrFail($request->id);
             $event->title = $request->title;
@@ -76,30 +98,35 @@ class EventController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Event updated successfully!']);
         } catch (\Exception $e) {
+            \Log::error('Error updating event (controller): ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'start_time' => 'required|date',
-            'end_time' => 'nullable|date|after_or_equal:start_time',
-            'location' => 'nullable|string|max:255',
-            'author_id' => 'required|exists:users,id',
-            'type' => 'required|string|in:public,private',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'start_time' => 'required|date',
+                'end_time' => 'nullable|date|after_or_equal:start_time',
+                'location' => 'nullable|string|max:255',
+                'type' => 'required|string|in:community,personal',
+            ]);
 
-        $event = Event::create([
-            'title' => $request->title,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'location' => $request->location,
-            'type' => $request->type ?? 'personal',
-            'author_id' => $request->author_id,
-        ]);
+            $event = Event::create([
+                'title' => $request->title,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'location' => $request->location,
+                'type' => $request->type ?? 'personal',
+                'author_id' => $request->author_id,
+            ]);
 
-        return redirect()->back()->with('success', 'Event created successfully!');
+            return redirect()->back()->with('success', 'Event created successfully!');
+        } catch (\Exception $e) {
+            \Log::error('Error creating event (controller): ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
     }
 }
