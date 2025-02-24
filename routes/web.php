@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\FavoriteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,12 +27,14 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'dashboard'])->
 Route::get('/', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/{id}', [EventController::class, 'show'])->name('events.show');
 Route::post('/events/update', [EventController::class, 'update'])->name('events.update');
+Route::post('/toggle-favorite', [FavoriteController::class, 'toggleFavorite'])->name('events.favorite');
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::post('/events/{event}/favorite', [EventController::class, 'addToFavorites'])->name('events.favorite');
     Route::post('/events/store', [EventController::class, 'store'])->name('events.store');
     Route::post('/events/{id}/update', [EventController::class, 'updateDayOnly'])->name('events.update_day_only');
+    Route::post('/toggle-join-event', [EventController::class, 'toggleJoinEvent'])->name('events.toggleJoinEvent');
     // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

@@ -27,15 +27,15 @@
                         <input type="hidden" id="eventId">
                         <div class="form-group">
                             <label for="title_edit">Title</label>
-                            <input type="text" id="title_edit" class="form-control">
+                            <input type="text" id="title_edit" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label for="start_time_edit">Start Time</label>
-                            <input type="datetime-local" id="start_time_edit" class="form-control">
+                            <input type="datetime-local" id="start_time_edit" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label for="end_time_edit">End Time</label>
-                            <input type="datetime-local" id="end_time_edit" class="form-control">
+                            <input type="datetime-local" id="end_time_edit" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label for="type_edit">Type</label>
@@ -79,7 +79,7 @@
                         </div>
                         <div class="form-group mb-3">
                             <label for="newEndTime">End Time</label>
-                            <input type="datetime-local" name="end_time" id="end_time_add" class="form-control">
+                            <input type="datetime-local" name="end_time" id="end_time_add" class="form-control" required>
                         </div>
                         <div class="form-group mb-3">
                             <label for="newType">Type</label>
@@ -127,6 +127,11 @@
 
         eventClick: function(info) {
             var event = info.event;
+            var isAuthor = event.extendedProps.is_author;
+            if (!isAuthor) {
+                alert("Bạn không có quyền chỉnh sửa sự kiện này.");
+                return;
+            }
             var eventIdField = document.getElementById('eventId');
             var titleEditField = document.getElementById('title_edit');
             var startTimeField = document.getElementById('start_time_edit');
@@ -145,6 +150,12 @@
 
         eventDrop: function (info) {
             var eventId = info.event.id;
+            var isAuthor = event.extendedProps.is_author;
+            if (!isAuthor) {
+                alert("Bạn không có quyền kéo thả sự kiện này.");
+                info.revert();
+                return;
+            }
             if (!eventId) {
                 alert('Event ID is missing.');
                 info.revert();

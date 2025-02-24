@@ -29,7 +29,10 @@ class HomeController extends Controller
 
     public function dashboard()
     {
-        $events = Event::all()->map(function ($event) {
+        $userId = auth()->id();
+        $events = Event::whereHas('participants', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })->get()->map(function ($event) use ($userId) {
             return [
                 'id' => $event->id,
                 'title' => $event->title,
@@ -38,9 +41,10 @@ class HomeController extends Controller
                 'location' => $event->location,
                 'type' => $event->type,
                 'description' => $event->description,
+                'is_author' => $event->author_id == $userId,
             ];
         });
-        
         return view('dashboard.index', compact('events'));
     }
+
 }

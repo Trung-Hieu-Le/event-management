@@ -8,15 +8,26 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
     public function index()
     {
         try {
-            //TODO: check type=community
-            $events = Event::where('type', 'personal')->get();
-            return view('events.index', compact('events'));
+            $events = Event::with(['participants', 'favorites'])
+                        ->where('type', 'community')
+                        ->get();
+            $firstEvent = $events->first();
+            $isJoined = false;
+
+            if (auth()->check() && $firstEvent) {
+                $isJoined = DB::table('event_users')
+                ->where('event_id', $firstEvent->id)
+                ->where('user_id', auth()->id())
+                ->exists();
+            }
+            return view('events.index', compact('events', 'firstEvent', 'isJoined'));
         } catch (\Exception $e) {
             \Log::error('Error fetching events (controller): ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
@@ -30,7 +41,20 @@ class EventController extends Controller
             if (!$event) {
                 return response()->json(['error' => 'Event not found'], 404);
             }
-            return response()->json($event);
+
+            $isJoined = false;
+            if (auth()->check()) {
+                $user = auth()->user();
+                $isJoined = DB::table('event_users')
+                            ->where('event_id', $id)
+                            ->where('user_id', $user->id)
+                            ->exists();
+            }
+
+            return response()->json([
+                'event' => $event,
+                'is_joined' => $isJoined
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error fetching event (controller): ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
@@ -122,11 +146,50 @@ class EventController extends Controller
                 'type' => $request->type ?? 'personal',
                 'author_id' => $request->author_id,
             ]);
-
+            $event->participants()->attach(auth()->id());
             return redirect()->back()->with('success', 'Event created successfully!');
         } catch (\Exception $e) {
             \Log::error('Error creating event (controller): ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
+
+    public function toggleJoinEvent(Request $request)
+{
+    if (!auth()->check()) {
+        return response()->json(['success' => false, 'message' => 'Bạn cần đăng nhập để tham gia sự kiện này'], 401);
+    }
+
+    $user = auth()->user();
+    $eventId = $request->event_id;
+    $existing = DB::table('event_users')
+                    ->where('event_id', $eventId)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+    if ($existing) {
+        DB::table('event_users')
+            ->where('event_id', $eventId)
+            ->where('user_id', $user->id)
+            ->delete();
+        $isJoined = false;
+    } else {
+        DB::table('event_users')->insert([
+            'event_id' => $eventId,
+            'user_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+        $isJoined = true;
+    }
+
+    $participantsCount = DB::table('event_users')->where('event_id', $eventId)->count();
+
+    return response()->json([
+        'success' => true,
+        'is_joined' => $isJoined,
+        'participants_count' => $participantsCount
+    ]);
+}
+
 }

@@ -15,17 +15,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->call(function () {
-            $events = Event::where('start_time', '>=', now()->subMinutes(10))
-                ->where('start_time', '<', now()->addMinutes(10))
-                ->get();
-
-            foreach ($events as $event) {
-                foreach ($event->favorites as $favorite) {
-                    Mail::to($favorite->user->email)->send(new EventReminder($event));
-                }
-            }
-        })->everyMinute();
+        $schedule->command('event:send-reminders')->dailyAt('08:00');
     }
 
 

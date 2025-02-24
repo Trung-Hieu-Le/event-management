@@ -16,13 +16,14 @@ class Event extends Model
     {
         return $this->belongsTo(User::class, 'author_id');
     }
-    public function users()
+    
+    public function participants()
     {
-        return $this->belongsToMany(User::class, 'event_user');
+        return $this->belongsToMany(User::class, 'event_users', 'event_id', 'user_id');
     }
     
     public function favorites()
     {
-        return $this->hasMany(Favorite::class);
+        return $this->hasMany(Favorite::class, 'event_id');
     }
 }

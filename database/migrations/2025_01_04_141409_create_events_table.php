@@ -24,6 +24,7 @@ return new class extends Migration
             $table->unsignedBigInteger('author_id');
             $table->boolean('delete')->default(0);
             $table->timestamps();
+            $table->timestamps('deleted_at')->nullable();
 
             $table->foreign('author_id')->references('id')->on('users')->onDelete('cascade');
         });
