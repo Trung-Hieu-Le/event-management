@@ -4,26 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model
 {
-    use SoftDeletes;
+    use HasFactory;
+    protected $fillable = ['name', 'author_id', 'start_time', 'end_time', 'image'];
 
-    protected $fillable = ['title', 'description', 'start_time', 'end_time', 'location', 'latitude', 'longitude', 'type', 'author_id', 'delete'];
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'event_user');
+    }
 
-    public function author()
+    public function tasks()
     {
-        return $this->belongsTo(User::class, 'author_id');
-    }
-    
-    public function participants()
-    {
-        return $this->belongsToMany(User::class, 'event_users', 'event_id', 'user_id');
-    }
-    
-    public function favorites()
-    {
-        return $this->hasMany(Favorite::class, 'event_id');
+        return $this->hasMany(Task::class);
     }
 }

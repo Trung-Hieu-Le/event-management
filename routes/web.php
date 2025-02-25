@@ -2,9 +2,10 @@
 
 use App\Http\Controllers\Auth\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\FavoriteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,19 +24,20 @@ use App\Http\Controllers\FavoriteController;
 
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'dashboard'])->name('home');
-Route::get('/', [EventController::class, 'index'])->name('events.index');
-Route::get('/events/{id}', [EventController::class, 'show'])->name('events.show');
-Route::post('/events/update', [EventController::class, 'update'])->name('events.update');
-Route::post('/toggle-favorite', [FavoriteController::class, 'toggleFavorite'])->name('events.favorite');
-
 // Protected routes
 Route::middleware(['auth'])->group(function () {
-    Route::post('/events/{event}/favorite', [EventController::class, 'addToFavorites'])->name('events.favorite');
-    Route::post('/events/store', [EventController::class, 'store'])->name('events.store');
-    Route::post('/events/{id}/update', [EventController::class, 'updateDayOnly'])->name('events.update_day_only');
-    Route::post('/toggle-join-event', [EventController::class, 'toggleJoinEvent'])->name('events.toggleJoinEvent');
-    // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::get('/event/{id}', [EventController::class, 'show'])->name('event.show');
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::put('/update-events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+    Route::post('/event/invite', [EventController::class, 'inviteUser'])->name('event.invite');
+    Route::post('/event/respond-invite', [EventController::class, 'respondInvite'])->name('event.respondInvite');
+    Route::get('/event/invitations', [EventController::class, 'getInvitations'])->name('event.invitations');
+
+
+    Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
+    Route::post('/task/update-status', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');

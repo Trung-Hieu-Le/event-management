@@ -2,128 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Event;
-use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
-    public function index()
-    {
-        try {
-            $events = Event::with(['participants', 'favorites'])
-                        ->where('type', 'community')
-                        ->get();
-            $firstEvent = $events->first();
-            $isJoined = false;
-
-            if (auth()->check() && $firstEvent) {
-                $isJoined = DB::table('event_users')
-                ->where('event_id', $firstEvent->id)
-                ->where('user_id', auth()->id())
-                ->exists();
-            }
-            return view('events.index', compact('events', 'firstEvent', 'isJoined'));
-        } catch (\Exception $e) {
-            \Log::error('Error fetching events (controller): ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
-
     public function show($id)
     {
         try {
-            $event = Event::findOrFail($id);
-            if (!$event) {
-                return response()->json(['error' => 'Event not found'], 404);
-            }
-
-            $isJoined = false;
-            if (auth()->check()) {
-                $user = auth()->user();
-                $isJoined = DB::table('event_users')
-                            ->where('event_id', $id)
-                            ->where('user_id', $user->id)
-                            ->exists();
-            }
-
-            return response()->json([
-                'event' => $event,
-                'is_joined' => $isJoined
-            ]);
+            $event = Event::with('tasks')->findOrFail($id);
+            return view('event.show', compact('event', 'id'));
         } catch (\Exception $e) {
-            \Log::error('Error fetching event (controller): ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
-
-    public function addToFavorites(Request $request, Event $event)
-    {
-        try {
-            $request->user()->favorites()->create(['event_id' => $event->id]);
-            return redirect()->back()->with('success', 'Event added to favorites!');
-        } catch (\Exception $e) {
-            \Log::error('Error adding event to favorites (controller): ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
-        }
-    }
-
-    public function updateDayOnly(Request $request, $id)
-    {
-        try {
-            $event = Event::findOrFail($id);
-            $start = $request->input('start');
-            $end = $request->input('end');
-
-            if (!$start) {
-                return response()->json(['success' => false, 'message' => 'Start time is required'], 422);
-            }
-
-            $event->start_time = Carbon::parse($start, 'Asia/Ho_Chi_Minh')->setTimezone('UTC')->format('Y-m-d H:i:s');
-            $event->end_time = $end
-                ? Carbon::parse($end, 'Asia/Ho_Chi_Minh')->setTimezone('UTC')->format('Y-m-d H:i:s')
-                : null;
-
-            $event->save();
-
-            return response()->json(['success' => true, 'message' => 'Event updated successfully']);
-        } catch (\Exception $e) {
-            \Log::error('Error updating event (controller): ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
-
-    public function update(Request $request)
-    {
-        // dd($request->all());
-        try {
-            $request->validate([
-                'id' => 'required|exists:events,id',
-                'title' => 'required|string|max:255',
-                'start_time' => 'required|date',
-                'end_time' => 'nullable|date|after_or_equal:start_time',
-                'location' => 'nullable|string|max:255',
-                'type' => 'required|string|in:community,personal',
-            ]);
-
-            // Tìm sự kiện và cập nhật thông tin
-            $event = Event::findOrFail($request->id);
-            $event->title = $request->title;
-            $event->start_time = $request->start_time;
-            $event->end_time = $request->end_time;
-            $event->location = $request->location;
-            $event->type = $request->type ?? 'personal';
-            $event->author_id = Auth::id();
-            $event->save();
-
-            return response()->json(['success' => true, 'message' => 'Event updated successfully!']);
-        } catch (\Exception $e) {
-            \Log::error('Error updating event (controller): ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            \Log::error('Error showing event: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Error showing event.');
         }
     }
 
@@ -131,65 +24,156 @@ class EventController extends Controller
     {
         try {
             $request->validate([
-                'title' => 'required|string|max:255',
-                'start_time' => 'required|date',
+                'name' => 'required|string|max:255',
+                'start_time' => 'nullable|date',
                 'end_time' => 'nullable|date|after_or_equal:start_time',
-                'location' => 'nullable|string|max:255',
-                'type' => 'required|string|in:community,personal',
+                'image' => 'nullable|image',
             ]);
 
-            $event = Event::create([
-                'title' => $request->title,
+            $event = new Event([
+                'name' => $request->name,
+                'author_id' => Auth::id(),
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'location' => $request->location,
-                'type' => $request->type ?? 'personal',
-                'author_id' => $request->author_id,
             ]);
-            $event->participants()->attach(auth()->id());
-            return redirect()->back()->with('success', 'Event created successfully!');
+
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('covers', 'public');
+                $event->image = $path;
+            }
+
+            $event->save();
+            $event->users()->attach(Auth::id());
+
+            return redirect()->route('home')->with('success', 'Event created successfully.');
         } catch (\Exception $e) {
-            \Log::error('Error creating event (controller): ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+            \Log::error('Error storing event: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Error creating event.');
         }
     }
 
-    public function toggleJoinEvent(Request $request)
-{
-    if (!auth()->check()) {
-        return response()->json(['success' => false, 'message' => 'Bạn cần đăng nhập để tham gia sự kiện này'], 401);
+    public function update(Request $request, Event $event)
+    {
+        if (Auth::id() !== $event->author_id) {
+            return redirect()->route('home')->with('error', 'Unauthorized');
+        }
+
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'start_time' => 'nullable|date',
+                'end_time' => 'nullable|date|after_or_equal:start_time',
+                'image' => 'nullable|image',
+            ]);
+
+            $event->name = $request->name;
+            $event->start_time = $request->start_time;
+            $event->end_time = $request->end_time;
+
+            if ($request->hasFile('image')) {
+                if ($event->image) {
+                    \Storage::disk('public')->delete($event->image);
+                }
+                $path = $request->file('image')->store('covers', 'public');
+                $event->image = $path;
+            } else {
+                if ($event->image) {
+                    \Storage::disk('public')->delete($event->image);
+                }
+                $event->image = 'covers/default.jpg';
+            }
+
+            $event->save();
+
+            return redirect()->route('home')->with('success', 'Event updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error updating event: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Error updating event.');
+        }
     }
 
-    $user = auth()->user();
-    $eventId = $request->event_id;
-    $existing = DB::table('event_users')
-                    ->where('event_id', $eventId)
-                    ->where('user_id', $user->id)
-                    ->first();
+    public function destroy(Event $event)
+    {
+        if (Auth::id() !== $event->author_id) {
+            return redirect()->route('home')->with('error', 'Unauthorized');
+        }
 
-    if ($existing) {
-        DB::table('event_users')
-            ->where('event_id', $eventId)
-            ->where('user_id', $user->id)
-            ->delete();
-        $isJoined = false;
-    } else {
-        DB::table('event_users')->insert([
-            'event_id' => $eventId,
-            'user_id' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now()
+        try {
+            $event->delete();
+            return redirect()->route('home')->with('success', 'Event deleted.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting event: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Error deleting event.');
+        }
+    }
+
+    public function inviteUser(Request $request)
+    {
+        $request->validate([
+            'identifier' => 'required|string',
+            'event_id' => 'required|exists:events,id',
         ]);
-        $isJoined = true;
+
+        try {
+            $user = User::where('username', $request->identifier)
+                        ->orWhere('email', $request->identifier)
+                        ->first();
+
+            if (!$user) {
+                return response()->json(['error' => 'User không tồn tại'], 404);
+            }
+
+            if ($user->id == Auth::id()) {
+                return response()->json(['error' => 'Không thể mời chính mình'], 400);
+            }
+
+            EventInvitation::updateOrCreate(
+                ['event_id' => $request->event_id, 'invitee_id' => $user->id],
+                ['inviter_id' => Auth::id(), 'status' => 'pending']
+            );
+
+            return response()->json(['success' => 'Đã gửi lời mời']);
+        } catch (\Exception $e) {
+            \Log::error('Error inviting user: ' . $e->getMessage());
+            return response()->json(['error' => 'Error inviting user'], 500);
+        }
     }
 
-    $participantsCount = DB::table('event_users')->where('event_id', $eventId)->count();
+    public function respondInvite(Request $request)
+    {
+        $request->validate([
+            'invitation_id' => 'required|exists:event_invitations,id',
+            'response' => 'required|in:accepted,rejected',
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'is_joined' => $isJoined,
-        'participants_count' => $participantsCount
-    ]);
-}
+        try {
+            $invitation = EventInvitation::findOrFail($request->invitation_id);
 
+            if ($invitation->invitee_id != Auth::id()) {
+                return response()->json(['error' => 'Không có quyền xử lý'], 403);
+            }
+
+            $invitation->update(['status' => $request->response]);
+
+            return response()->json(['success' => 'Phản hồi thành công']);
+        } catch (\Exception $e) {
+            \Log::error('Error responding to invitation: ' . $e->getMessage());
+            return response()->json(['error' => 'Error responding to invitation'], 500);
+        }
+    }
+
+    public function getInvitations()
+    {
+        try {
+            $invitations = EventInvitation::with('event', 'inviter')
+                ->where('invitee_id', Auth::id())
+                ->where('status', 'pending')
+                ->get();
+
+            return response()->json($invitations);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching invitations: ' . $e->getMessage());
+            return response()->json(['error' => 'Error fetching invitations'], 500);
+        }
+    }
 }

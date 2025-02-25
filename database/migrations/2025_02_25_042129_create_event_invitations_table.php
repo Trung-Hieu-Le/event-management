@@ -9,17 +9,15 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('event_users', function (Blueprint $table) {
+        Schema::create('event_invitations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('event_id');
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('inviter_id');
+            $table->unsignedBigInteger('invitee_id');
+            $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
-
-            $table->foreign('event_id')->references('id')->on('events')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->unique(['event_id', 'user_id']);
         });
     }
 
@@ -28,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('event_user');
+        Schema::dropIfExists('event_invitations');
     }
 };

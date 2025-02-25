@@ -43,14 +43,13 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function favorites()
-    {
-        return $this->hasMany(Favorite::class, 'user_id');
-    }
-
     public function events()
     {
         return $this->belongsToMany(Event::class, 'event_user');
     }
-    
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
 }

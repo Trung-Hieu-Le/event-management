@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Event;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
@@ -22,29 +23,29 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('home');
-    }
+        try {
+            $user = Auth::user();
+            $search = $request->query('search');
+            $sort = $request->query('sort', 'latest'); // Sắp xếp mặc định: mới nhất
+            $filter = $request->query('filter', 'all'); // Mặc định hiển thị tất cả
 
-    public function dashboard()
-    {
-        $userId = auth()->id();
-        $events = Event::whereHas('participants', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })->get()->map(function ($event) use ($userId) {
-            return [
-                'id' => $event->id,
-                'title' => $event->title,
-                'start' => $event->start_time,
-                'end' => $event->end_time,
-                'location' => $event->location,
-                'type' => $event->type,
-                'description' => $event->description,
-                'is_author' => $event->author_id == $userId,
-            ];
-        });
-        return view('dashboard.index', compact('events'));
+            $eventsQuery = Event::query()
+                ->when($filter === 'author', fn($query) => $query->where('author_id', $user->id))
+                ->when($filter === 'joined', fn($query) => $query->whereHas('users', fn($q) => $q->where('user_id', $user->id))->where('author_id', '!=', $user->id))
+                ->when($search, fn($query) => $query->where('name', 'like', "%$search%"))
+                ->when($sort === 'most_tasks', fn($query) => $query->withCount('tasks')->orderByDesc('tasks_count'))
+                ->when($sort === 'latest', fn($query) => $query->orderByDesc('created_at'))
+                ->when($sort === 'oldest', fn($query) => $query->orderBy('created_at'));
+
+            $events = $eventsQuery->get();
+
+            return view('home', compact('events', 'search', 'sort', 'filter'));
+        } catch (\Exception $e) {
+            \Log::error('Error fetching events: ' . $e->getMessage());
+            return redirect()->back()->withErrors('An error occurred while fetching events.');
+        }
     }
 
 }
