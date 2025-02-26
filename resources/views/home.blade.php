@@ -27,7 +27,7 @@
     @else
         <div class="row">
             @foreach ($events as $event)
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card mb-3">
                         @if($event->image)
                             <a href="{{ route('event.show', $event->id) }}">
@@ -69,10 +69,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <label for="name">Tên dự án</label>
                     <input type="text" id="name" name="name" class="form-control" placeholder="Tên dự án" required>
-                    <input type="datetime-local" id="start_time" name="start_time" class="form-control mt-2">
-                    <input type="datetime-local" id="end_time" name="end_time" class="form-control mt-2">
-                    <input type="file" name="image" class="form-control mt-2">
+                    
+                    <label for="start_time" class="mt-2">Ngày bắt đầu</label>
+                    <input type="datetime-local" id="start_time" name="start_time" class="form-control">
+                    
+                    <label for="end_time" class="mt-2">Ngày kết thúc</label>
+                    <input type="datetime-local" id="end_time" name="end_time" class="form-control">
+
+                    <label for="image" class="mt-2">Hình ảnh</label>
+                    <input type="file" id="image" name="image" class="form-control">
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Lưu</button>

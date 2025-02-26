@@ -15,8 +15,19 @@ class Event extends Model
         return $this->belongsToMany(User::class, 'event_user');
     }
 
+
     public function tasks()
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function invites()
+    {
+        return $this->hasMany(Invite::class);
     }
 }

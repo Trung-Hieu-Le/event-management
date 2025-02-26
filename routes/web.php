@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InviteController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -27,16 +28,22 @@ Auth::routes();
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::get('/event/{id}', [EventController::class, 'show'])->name('event.show');
     Route::post('/events', [EventController::class, 'store'])->name('events.store');
     Route::put('/update-events/{event}', [EventController::class, 'update'])->name('events.update');
     Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
-    Route::post('/event/invite', [EventController::class, 'inviteUser'])->name('event.invite');
-    Route::post('/event/respond-invite', [EventController::class, 'respondInvite'])->name('event.respondInvite');
-    Route::get('/event/invitations', [EventController::class, 'getInvitations'])->name('event.invitations');
+
+    Route::post('/event/invite', [InviteController::class, 'inviteUser'])->name('event.invite');
+    Route::get('/invites', [InviteController::class, 'listInvites'])->name('event.inviteList');
+    Route::post('/invites/{id}/accept', [InviteController::class, 'acceptInvite']);
+    Route::post('/invites/{id}/reject', [InviteController::class, 'rejectInvite']);
 
 
     Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
+    Route::put('/task/{id}/delete', [TaskController::class, 'delete']);
+    Route::put('/task/{id}/restore', [TaskController::class, 'restore']);
+    Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
     Route::post('/task/update-status', [TaskController::class, 'updateStatus'])->name('task.updateStatus');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

@@ -17,7 +17,6 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ['to-do', 'doing', 'done', 'failed', 'reworking'])->default('to-do');
             $table->unsignedBigInteger('event_id');
-            $table->unsignedBigInteger('assigned_to')->nullable();
             $table->unsignedBigInteger('author_id')->nullable();
             $table->boolean('deleted')->default(false);
             $table->timestamp('start_time')->default(DB::raw('CURRENT_TIMESTAMP'))->nullable();

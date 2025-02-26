@@ -23,7 +23,6 @@
 
     <!-- Load Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
 
 </head>
 <body>
@@ -62,6 +61,9 @@
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }}
+                                    @if(App\Models\Invite::where('invitee_id', auth()->id())->where('status', 'pending')->exists())
+                                        <span class="badge rounded-pill bg-danger">!</span>
+                                    @endif
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
@@ -70,6 +72,12 @@
                                     </a>
                                     <a class="dropdown-item" href="{{ route('profile.show') }}">
                                         <i class="fas fa-user me-2"></i> {{ __('Profile') }}
+                                    </a>
+                                    <a class="dropdown-item" href="{{ route('event.inviteList') }}">
+                                        <i class="fas fa-envelope me-2"></i> {{ __('Invites') }}
+                                        @if(App\Models\Invite::where('invitee_id', auth()->id())->where('status', 'pending')->exists())
+                                            <span class="badge rounded-pill bg-danger">!</span>
+                                        @endif
                                     </a>
                                     <a class="dropdown-item text-danger" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();

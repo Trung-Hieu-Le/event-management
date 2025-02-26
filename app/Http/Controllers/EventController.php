@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Event;
+use App\Models\User;
+use App\Models\Invite;
 use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
@@ -12,7 +14,7 @@ class EventController extends Controller
     public function show($id)
     {
         try {
-            $event = Event::with('tasks')->findOrFail($id);
+            $event = Event::with(['tasks', 'users'])->findOrFail($id);
             return view('event.show', compact('event', 'id'));
         } catch (\Exception $e) {
             \Log::error('Error showing event: ' . $e->getMessage());
@@ -104,76 +106,6 @@ class EventController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error deleting event: ' . $e->getMessage());
             return redirect()->route('home')->with('error', 'Error deleting event.');
-        }
-    }
-
-    public function inviteUser(Request $request)
-    {
-        $request->validate([
-            'identifier' => 'required|string',
-            'event_id' => 'required|exists:events,id',
-        ]);
-
-        try {
-            $user = User::where('username', $request->identifier)
-                        ->orWhere('email', $request->identifier)
-                        ->first();
-
-            if (!$user) {
-                return response()->json(['error' => 'User không tồn tại'], 404);
-            }
-
-            if ($user->id == Auth::id()) {
-                return response()->json(['error' => 'Không thể mời chính mình'], 400);
-            }
-
-            EventInvitation::updateOrCreate(
-                ['event_id' => $request->event_id, 'invitee_id' => $user->id],
-                ['inviter_id' => Auth::id(), 'status' => 'pending']
-            );
-
-            return response()->json(['success' => 'Đã gửi lời mời']);
-        } catch (\Exception $e) {
-            \Log::error('Error inviting user: ' . $e->getMessage());
-            return response()->json(['error' => 'Error inviting user'], 500);
-        }
-    }
-
-    public function respondInvite(Request $request)
-    {
-        $request->validate([
-            'invitation_id' => 'required|exists:event_invitations,id',
-            'response' => 'required|in:accepted,rejected',
-        ]);
-
-        try {
-            $invitation = EventInvitation::findOrFail($request->invitation_id);
-
-            if ($invitation->invitee_id != Auth::id()) {
-                return response()->json(['error' => 'Không có quyền xử lý'], 403);
-            }
-
-            $invitation->update(['status' => $request->response]);
-
-            return response()->json(['success' => 'Phản hồi thành công']);
-        } catch (\Exception $e) {
-            \Log::error('Error responding to invitation: ' . $e->getMessage());
-            return response()->json(['error' => 'Error responding to invitation'], 500);
-        }
-    }
-
-    public function getInvitations()
-    {
-        try {
-            $invitations = EventInvitation::with('event', 'inviter')
-                ->where('invitee_id', Auth::id())
-                ->where('status', 'pending')
-                ->get();
-
-            return response()->json($invitations);
-        } catch (\Exception $e) {
-            \Log::error('Error fetching invitations: ' . $e->getMessage());
-            return response()->json(['error' => 'Error fetching invitations'], 500);
         }
     }
 }
