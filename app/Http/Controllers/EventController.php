@@ -14,11 +14,11 @@ class EventController extends Controller
     public function show($id)
     {
         try {
-            $event = Event::with(['tasks', 'users'])->findOrFail($id);
+            $event = Event::with(['tasks.users', 'users'])->findOrFail($id);
             return view('event.show', compact('event', 'id'));
         } catch (\Exception $e) {
             \Log::error('Error showing event: ' . $e->getMessage());
-            return redirect()->route('home')->with('error', 'Error showing event.');
+            return redirect()->route('home')->with('error', 'Lỗi khi hiển thị sự kiện: '.$e->getMessage());
         }
     }
 
@@ -37,6 +37,7 @@ class EventController extends Controller
                 'author_id' => Auth::id(),
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
+                'image' => 'covers/default.jpg', // Ảnh mặc định
             ]);
 
             if ($request->hasFile('image')) {
@@ -47,10 +48,10 @@ class EventController extends Controller
             $event->save();
             $event->users()->attach(Auth::id());
 
-            return redirect()->route('home')->with('success', 'Event created successfully.');
+            return redirect()->route('home')->with('success', 'Sự kiện được tạo thành công.');
         } catch (\Exception $e) {
             \Log::error('Error storing event: ' . $e->getMessage());
-            return redirect()->route('home')->with('error', 'Error creating event.');
+            return redirect()->route('home')->with('error', 'Lỗi khi tạo sự kiện: '.$e->getMessage());
         }
     }
 
@@ -73,26 +74,24 @@ class EventController extends Controller
             $event->end_time = $request->end_time;
 
             if ($request->hasFile('image')) {
-                if ($event->image) {
+                if ($event->image && $event->image !== 'covers/default.jpg') {
                     \Storage::disk('public')->delete($event->image);
                 }
                 $path = $request->file('image')->store('covers', 'public');
                 $event->image = $path;
-            } else {
-                if ($event->image) {
-                    \Storage::disk('public')->delete($event->image);
-                }
-                $event->image = 'covers/default.jpg';
+            } elseif (!$event->image) {
+                $event->image = 'covers/default.jpg'; // Giữ ảnh cũ hoặc đặt ảnh mặc định
             }
 
             $event->save();
 
-            return redirect()->route('home')->with('success', 'Event updated successfully.');
+            return redirect()->route('home')->with('success', 'Sự kiện được cập nhật thành công.');
         } catch (\Exception $e) {
             \Log::error('Error updating event: ' . $e->getMessage());
-            return redirect()->route('home')->with('error', 'Error updating event.');
+            return redirect()->route('home')->with('error', 'Lỗi khi cập nhật sự kiện: '.$e->getMessage());
         }
     }
+
 
     public function destroy(Event $event)
     {
@@ -102,10 +101,10 @@ class EventController extends Controller
 
         try {
             $event->delete();
-            return redirect()->route('home')->with('success', 'Event deleted.');
+            return redirect()->route('home')->with('success', 'Sự kiện được xóa thành công.');
         } catch (\Exception $e) {
             \Log::error('Error deleting event: ' . $e->getMessage());
-            return redirect()->route('home')->with('error', 'Error deleting event.');
+            return redirect()->route('home')->with('error', 'Lỗi khi xóa sự kiện: '.$e->getMessage());
         }
     }
 }

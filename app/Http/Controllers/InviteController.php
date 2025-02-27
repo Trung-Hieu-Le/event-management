@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Invite;
 use App\Models\User;
+use App\Models\Event;
 use Illuminate\Support\Facades\Auth;
 
 class InviteController extends Controller
@@ -57,7 +58,7 @@ class InviteController extends Controller
             return response()->json(['success' => 'Đã gửi lời mời']);
         } catch (\Exception $e) {
             \Log::error('Error inviting user: ' . $e->getMessage());
-            return response()->json(['error' => 'Error inviting user'], 500);
+            return response()->json(['error' => 'Lỗi khi gửi lời mời'], 500);
         }
     }
 

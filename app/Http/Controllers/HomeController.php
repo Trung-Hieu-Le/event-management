@@ -44,7 +44,7 @@ class HomeController extends Controller
             return view('home', compact('events', 'search', 'sort', 'filter'));
         } catch (\Exception $e) {
             \Log::error('Error fetching events: ' . $e->getMessage());
-            return redirect("/")->back()->withErrors('An error occurred while fetching events.');
+            return redirect("/")->back()->withErrors('Lỗi khi lấy danh sách sự kiện: '.$e->getMessage());
         }
     }
 

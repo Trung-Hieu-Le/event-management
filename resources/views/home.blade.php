@@ -66,7 +66,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle">Thêm Dự Án</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <label for="name">Tên dự án</label>
@@ -79,11 +79,17 @@
                     <input type="datetime-local" id="end_time" name="end_time" class="form-control">
 
                     <label for="image" class="mt-2">Hình ảnh</label>
-                    <input type="file" id="image" name="image" class="form-control">
+                <input type="file" id="image" name="image" class="form-control" onchange="previewImage(event)">
+                <small id="imageName" class="text-muted"></small> <!-- Hiển thị tên file -->
+                <div class="mt-3">
+                    <img id="imagePreview" src="" class="img-fluid" style="display: none; max-width: 100%;">
+                </div>
+
+
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Lưu</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </form>
@@ -91,24 +97,65 @@
 </div>
 
 <script>
-function showCreateModal() {
+    function showCreateModal() {
     document.getElementById('modalTitle').innerText = 'Thêm Dự Án';
     document.getElementById('eventForm').action = "{{ route('events.store') }}";
     document.getElementById('method').value = 'POST';
+
+    // Reset form khi mở modal
+    document.getElementById('name').value = '';
+    document.getElementById('start_time').value = '';
+    document.getElementById('end_time').value = '';
+    document.getElementById('imageName').innerText = ''; // Xóa tên file
+    document.getElementById('imagePreview').style.display = 'none'; // Ẩn ảnh
+    document.getElementById('imagePreview').src = ''; // Xóa src
+
     var modal = new bootstrap.Modal(document.getElementById('eventModal'));
     modal.show();
 }
 
-function editEvent(id, name, start_time, end_time) {
+function editEvent(id, name, start_time, end_time, imagePath) {
     document.getElementById('modalTitle').innerText = 'Sửa Dự Án';
     document.getElementById('eventForm').action = "/update-events/" + id;
     document.getElementById('method').value = 'PUT';
     document.getElementById('name').value = name;
     document.getElementById('start_time').value = start_time;
     document.getElementById('end_time').value = end_time;
-    document.getElementById('eventModal').style.display = 'block';
+
+    document.getElementById('imageName').innerText = ''; // Xóa tên file
+    let imagePreview = document.getElementById('imagePreview');
+    let imageName = document.getElementById('imageName');
+
+    if (imagePath) {
+        imagePreview.src = "/storage/" + imagePath;
+        imagePreview.style.display = 'block';
+        imageName.innerText = imagePath.split('/').pop(); // Chỉ hiển thị tên file
+    } else {
+        imagePreview.style.display = 'none';
+        imagePreview.src = '';
+        imageName.innerText = '';
+    }
+
     var modal = new bootstrap.Modal(document.getElementById('eventModal'));
     modal.show();
 }
+
+// Xem trước ảnh khi người dùng chọn ảnh mới
+function previewImage(event) {
+    let imagePreview = document.getElementById('imagePreview');
+    let imageName = document.getElementById('imageName');
+    let file = event.target.files[0];
+
+    if (file) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            imageName.innerText = file.name; // Hiển thị tên file mới chọn
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
 </script>
 @endsection

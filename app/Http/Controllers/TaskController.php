@@ -9,16 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
-    public function index($event_id)
-    {
-        try {
-            return Task::where('event_id', $event_id)->get();
-        } catch (\Exception $e) {
-            \Log::error('Error fetching tasks: ' . $e->getMessage());
-            return response()->json(['error' => 'Error fetching tasks'], 500);
-        }
-    }
-
     public function store(Request $request)
     {
         try {
@@ -34,7 +24,7 @@ class TaskController extends Controller
                 'assigned_to.*' => 'exists:users,id',
             ]);
 
-            Task::create([
+            $task = Task::create([
                 'title' => $validated['title'],
                 'description' => $request->description,
                 'status' => $validated['status'],
@@ -45,12 +35,14 @@ class TaskController extends Controller
                 'end_time' => $request->end_time,
                 'priority' => $validated['priority'] ?? 'low'
             ]);
-            $task->users()->sync($request->assigned_to);
+            if ($request->has('assigned_to')) {
+                $task->users()->sync($request->assigned_to);
+            }
 
-            return response()->json(['message' => 'Task created successfully!']);
+            return response()->json(['message' => 'Task đã được tạo thành công!']);
         } catch (\Exception $e) {
             \Log::error('Error creating task: ' . $e->getMessage());
-            return response()->json(['error' => 'Error creating task'], 500);
+            return response()->json(['error' => 'Lỗi tạo task'], 500);
         }
     }
 
@@ -68,7 +60,7 @@ class TaskController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             \Log::error('Error updating task status: ' . $e->getMessage());
-            return response()->json(['error' => 'Error updating task status'], 500);
+            return response()->json(['error' => 'Lỗi cập nhật task'], 500);
         }
     }
 
@@ -77,11 +69,13 @@ class TaskController extends Controller
         try {
             $task = Task::findOrFail($id);
             $task->update($request->only(['title', 'description', 'priority', 'start_time', 'end_time']));
-            $task->users()->sync($request->assigned_to);
+            if ($request->has('assigned_to')) {
+                $task->users()->sync($request->assigned_to);
+            }
             return response()->json(['message' => 'Task cập nhật thành công!']);
         } catch (\Exception $e) {
             \Log::error('Error updating task: ' . $e->getMessage());
-            return response()->json(['error' => 'Error updating task'], 500);
+            return response()->json(['error' => 'Lỗi cập nhật task'], 500);
         }
     }
 

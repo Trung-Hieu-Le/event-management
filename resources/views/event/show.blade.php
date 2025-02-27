@@ -2,12 +2,12 @@
 
 @section('content')
 <div class="container">
-    <h2>{{ $event->name }} <button class="btn btn-primary ms-3" onclick="showInviteModal()">Mời User</button></h2>
+    <h2>{{ $event->name }} <button class="btn btn-primary ms-3" onclick="showInviteModal()">Mời</button></h2>
     <p>Thời gian: {{ $event->start_time }} - {{ $event->end_time }}</p>
     <p>Thành viên: 
         @foreach ($event->users as $user)
             @if ($user->id === $event->author_id)
-                <strong>{{ $user->name }} (Author)</strong>,
+                <strong>{{ $user->name }} (Nhóm trưởng)</strong>,
             @else
                 {{ $user->name }},
             @endif
@@ -97,7 +97,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title modal-title-task">Thêm Task</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="taskForm">
@@ -135,9 +135,12 @@
 
                         <div class="mb-3">
                             <label for="assigned_to" class="form-label">Giao cho</label>
-                            <select id="assigned_to" class="form-select" multiple>
+                            <select name="assigned_to[]" id="assigned_to" class="form-select selectpicker" multiple data-live-search="true" data-width="100%">
                                 @foreach ($event->users as $user)
-                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                    <option value="{{ $user->id }}"
+                                        @if (isset($task) && $task->users->contains($user->id)) selected @endif>
+                                        {{ $user->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -163,14 +166,14 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Mời người dùng vào sự kiện</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <label for="inviteInput">Nhập email hoặc tên:</label>
                     <input type="text" id="inviteInput" class="form-control" placeholder="Nhập email hoặc tên" required>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button class="btn btn-secondary" data-dismiss="modal">Hủy</button>
                     <button class="btn btn-primary" onclick="sendInvite()">Gửi lời mời</button>
                 </div>
             </div>
@@ -179,6 +182,10 @@
 </div>
 
 <script>
+    $(document).ready(function () {
+        $('.selectpicker').selectpicker();
+    });
+
     function allowDrop(event) {
         event.preventDefault();
     }
@@ -212,8 +219,6 @@
     function sendInvite() {
         let identifier = document.getElementById('inviteInput').value;
         let eventId = "{{ $event->id }}";
-        let inviterId = "{{ auth()->user()->id }}"; // Lấy id của người mời
-        console.log(identifier, eventId, inviterId);
         
         fetch("{{ route('event.invite') }}", {
             method: "POST",
@@ -243,12 +248,18 @@
         document.getElementById("taskSubmitBtn").setAttribute("onclick", "createTask()"); // Đổi nút thành tạo mới
         let deleteBtn = document.getElementById("deleteTaskBtn");
         if (deleteBtn) deleteBtn.remove(); // Xóa nút xóa nếu có
+        let assignedSelect = document.getElementById("assigned_to");
+        for (let option of assignedSelect.options) {
+            option.selected = false;
+        }
+        $('.selectpicker').selectpicker('refresh');
 
         let modal = new bootstrap.Modal(document.getElementById("taskModal"));
         modal.show();
     }
 
     function editTask(task) {
+        console.log(task.users);
         document.getElementById("task_id").value = task.id;
         document.getElementById("title").value = task.title;
         document.getElementById("description").value = task.description || "";
@@ -257,10 +268,11 @@
         document.getElementById("end_time").value = task.end_time;
         document.getElementById("status").value = task.status; 
         let assignedSelect = document.getElementById("assigned_to");
-        let assignedUsers = Array.isArray(task.assigned_to) ? task.assigned_to : [task.assigned_to];
+        let assignedUsers = task.users.map(user => user.id.toString());
         for (let option of assignedSelect.options) {
             option.selected = assignedUsers.includes(option.value);
         }
+        $('.selectpicker').selectpicker('refresh');
 
         document.querySelector(".modal-title-task").textContent = "Chỉnh sửa Task"; // Đổi tiêu đề modal
         document.getElementById("taskSubmitBtn").setAttribute("onclick", "updateTask()"); // Đổi nút thành cập nhật
@@ -297,7 +309,6 @@
             priority: document.getElementById('priority').value,
             _token: "{{ csrf_token() }}"
         };
-        console.log(data);
         fetch("{{ route('task.store') }}", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
